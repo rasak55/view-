@@ -121,9 +121,20 @@ struct ZoomableImageView: View {
             }
             .frame(width: viewSize.width, height: viewSize.height)
             .contentShape(Rectangle())
-            .onTapGesture(count: 2) {
-                store.toggleFullScreenPresentation()
-            }
+            .gesture(
+                TapGesture(count: 2)
+                    .onEnded {
+                        store.toggleFullScreenPresentation()
+                    }
+                    .exclusively(
+                        before: TapGesture(count: 1)
+                            .onEnded {
+                                withAnimation(.easeInOut(duration: 0.18)) {
+                                    store.showViewerControls.toggle()
+                                }
+                            }
+                    )
+            )
             .background(
                 ScrollWheelCaptureView(
                     onNavigate: { direction in

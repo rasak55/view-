@@ -100,10 +100,17 @@ final class ImageStore: ObservableObject {
     @Published var currentMetadata: ImageMetadata = ImageMetadata()
     
     // View & UI States
-    @Published var viewMode: AppViewMode = .split
+    @Published var viewMode: AppViewMode = .split {
+        didSet {
+            if viewMode == .view {
+                showViewerControls = false
+            }
+        }
+    }
     @Published var showSidebar: Bool = true
     @Published var showInspector: Bool = true
     @Published var showFilmstrip: Bool = true
+    @Published var showViewerControls: Bool = false
     @Published var isFullScreenPresentation: Bool = false
     @Published var thumbnailSize: Double = 150
     
@@ -603,6 +610,7 @@ final class ImageStore: ObservableObject {
         showSidebar = false
         showInspector = false
         showFilmstrip = false
+        showViewerControls = false
         isFitToWindow = true
         panOffset = .zero
         lastPanOffset = .zero

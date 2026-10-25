@@ -9,8 +9,8 @@ struct ViewerView: View {
                 // Main Zoomable & Pannable Image Canvas
                 ZoomableImageView(store: store)
                 
-                // Left / Right On-Screen Navigation Buttons (ACDSee style)
-                if store.filteredImages.count > 1 {
+                // Left / Right On-Screen Navigation Buttons (ACDSee style) — shown when showViewerControls is true
+                if store.showViewerControls && store.filteredImages.count > 1 {
                     HStack {
                         Button(action: { store.selectPreviousImage() }) {
                             Image(systemName: "chevron.left")
@@ -50,9 +50,11 @@ struct ViewerView: View {
                         .padding(.trailing, 14)
                         .help("รูปถัดไป (ลูกศรขวา →)")
                     }
+                    .transition(.opacity)
                 }
                 
-                // Floating HUD Control Bar at Bottom of Canvas
+                // Floating HUD Control Bar at Top & Bottom of Canvas — shown when showViewerControls is true
+                if store.showViewerControls {
                 VStack {
                     // Top Quick Info Pill
                     if let item = store.selectedImage {
@@ -285,10 +287,12 @@ struct ViewerView: View {
                     .padding(.bottom, 12)
                     }
                 }
+                .transition(.opacity)
+                }
             }
             
-            // Optional ACDSee Filmstrip at Bottom (only in View mode, not Split mode)
-            if store.viewMode == .view && !store.isFullScreenPresentation && store.showFilmstrip && !store.filteredImages.isEmpty {
+            // Optional ACDSee Filmstrip at Bottom (only in View mode when controls are shown)
+            if store.showViewerControls && store.viewMode == .view && !store.isFullScreenPresentation && store.showFilmstrip && !store.filteredImages.isEmpty {
                 Divider()
                 FilmstripBarView(store: store)
             }
