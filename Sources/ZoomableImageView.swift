@@ -57,6 +57,7 @@ struct ZoomableImageView: View {
                     Image(nsImage: nsImage)
                         .interpolation(.high)
                         .resizable()
+                        .scaledToFit()
                         .frame(width: displayWidth, height: displayHeight)
                         .scaleEffect(
                             x: store.isFlippedHorizontally ? -1 : 1,
@@ -184,13 +185,28 @@ struct ZoomableImageView: View {
     }
     
     private func effectiveImageSize(for image: NSImage) -> CGSize {
+        var w: CGFloat = 0
+        var h: CGFloat = 0
         if store.currentMetadata.pixelWidth > 0 && store.currentMetadata.pixelHeight > 0 {
-            return CGSize(width: store.currentMetadata.pixelWidth, height: store.currentMetadata.pixelHeight)
+            w = CGFloat(store.currentMetadata.pixelWidth)
+            h = CGFloat(store.currentMetadata.pixelHeight)
+        } else if let rep = image.representations.first, rep.pixelsWide > 0 && rep.pixelsHigh > 0 {
+            w = CGFloat(rep.pixelsWide)
+            h = CGFloat(rep.pixelsHigh)
+        } else {
+            return image.size
         }
-        if let rep = image.representations.first, rep.pixelsWide > 0 && rep.pixelsHigh > 0 {
-            return CGSize(width: rep.pixelsWide, height: rep.pixelsHigh)
+        
+        // Match visual orientation of NSImage (which automatically applies EXIF orientation)
+        let imgSize = image.size
+        if imgSize.width > 0 && imgSize.height > 0 {
+            let isVisualPortrait = imgSize.height > imgSize.width
+            let isPixelPortrait = h > w
+            if isVisualPortrait != isPixelPortrait && w != h {
+                swap(&w, &h)
+            }
         }
-        return image.size
+        return CGSize(width: w, height: h)
     }
     
     private func calculateFitScale(imageSize: CGSize, in viewSize: CGSize) -> CGFloat {

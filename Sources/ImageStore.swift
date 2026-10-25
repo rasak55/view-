@@ -835,16 +835,17 @@ final class ImageStore: ObservableObject {
             return
         }
         
+        let loadedImage: NSImage?
         if let image = NSImage(contentsOf: url) {
-            currentNSImage = image
-        } else if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-                  let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
-            currentNSImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+            loadedImage = image
+        } else if let cgImage = ImageTransformService.loadOrientedCGImage(from: url) {
+            loadedImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
         } else {
-            currentNSImage = nil
+            loadedImage = nil
         }
         
-        currentMetadata = extractMetadata(from: url, fallbackImage: currentNSImage)
+        currentMetadata = extractMetadata(from: url, fallbackImage: loadedImage)
+        currentNSImage = loadedImage
     }
     
     private func extractMetadata(from url: URL, fallbackImage: NSImage?) -> ImageMetadata {
@@ -858,8 +859,22 @@ final class ImageStore: ObservableObject {
             return meta
         }
         
-        meta.pixelWidth = (props[kCGImagePropertyPixelWidth] as? Int) ?? 0
-        meta.pixelHeight = (props[kCGImagePropertyPixelHeight] as? Int) ?? 0
+        var rawWidth = (props[kCGImagePropertyPixelWidth] as? Int) ?? 0
+        var rawHeight = (props[kCGImagePropertyPixelHeight] as? Int) ?? 0
+        
+        var orientation = (props[kCGImagePropertyOrientation] as? Int) ?? 1
+        if orientation == 1,
+           let tiff = props[kCGImagePropertyTIFFDictionary] as? [CFString: Any],
+           let tiffOrient = tiff[kCGImagePropertyTIFFOrientation] as? Int {
+            orientation = tiffOrient
+        }
+        // EXIF orientations 5, 6, 7, 8 are rotated 90°/270° (portrait)
+        if (5...8).contains(orientation) {
+            swap(&rawWidth, &rawHeight)
+        }
+        
+        meta.pixelWidth = rawWidth
+        meta.pixelHeight = rawHeight
         meta.dpiWidth = props[kCGImagePropertyDPIWidth] as? Int
         meta.colorModel = props[kCGImagePropertyColorModel] as? String
         meta.depth = props[kCGImagePropertyDepth] as? Int
